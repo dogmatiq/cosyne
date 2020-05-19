@@ -6,5 +6,14 @@
 [![Documentation](https://img.shields.io/badge/go.dev-reference-007d9c)](https://pkg.go.dev/github.com/dogmatiq/cosyne)
 [![Go Report Card](https://goreportcard.com/badge/github.com/dogmatiq/cosyne)](https://goreportcard.com/report/github.com/dogmatiq/cosyne)
 
-[Context](https://pkg.go.dev/context/?tab=doc)-aware synchronization primitives
-for Go.
+Cosyne provides [context](https://pkg.go.dev/context/?tab=doc)-aware
+synchronization primitives for Go.
+
+## Mutexes
+
+Cosyne includes variants of `sync.Mutex` and `RWMutex` that accept a
+`context.Context` parameter, which allows support for cancellation and deadlines
+while acquiring locks.
+
+The mutex implementations also support "try lock" semantics, allowing the user
+to acquire the lock only if doing so would not block.
