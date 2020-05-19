@@ -1,1 +1,2 @@
-package GITHUB_REPO_NAME
+// Package cosyne provides context-aware synchronization primitives.
+package cosyne
