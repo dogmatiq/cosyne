@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog], and this project adheres to
 ### Added
 
 - Add `Once`, a context-aware and "failable" variant of `sync.Once`
+- Add `RWMutex.TryLock()` and `TryRLock()`
 
 ## [0.1.0] - 2020-05-20
 

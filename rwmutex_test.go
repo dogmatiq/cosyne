@@ -43,6 +43,22 @@ var _ = Describe("type RWMutex", func() {
 			Expect(err).To(Equal(context.DeadlineExceeded))
 		})
 
+		It("causes TryLock() to return false", func() {
+			err := mutex.Lock(ctx)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			ok := mutex.TryLock()
+			Expect(ok).To(BeFalse())
+		})
+
+		It("causes TryRLock() to return false", func() {
+			err := mutex.Lock(ctx)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			ok := mutex.TryRLock()
+			Expect(ok).To(BeFalse())
+		})
+
 		It("returns an error if the context is canceled", func() {
 			// The idea here is to bail before ever trying to acquire the
 			// internal mutex.
@@ -50,6 +66,40 @@ var _ = Describe("type RWMutex", func() {
 
 			err := mutex.Lock(ctx)
 			Expect(err).To(Equal(context.Canceled))
+		})
+	})
+
+	Describe("func TryLock()", func() {
+		It("blocks calls to Lock()", func() {
+			ok := mutex.TryLock()
+			Expect(ok).To(BeTrue())
+
+			err := mutex.Lock(ctx)
+			Expect(err).To(Equal(context.DeadlineExceeded))
+		})
+
+		It("blocks calls to RLock()", func() {
+			ok := mutex.TryLock()
+			Expect(ok).To(BeTrue())
+
+			err := mutex.RLock(ctx)
+			Expect(err).To(Equal(context.DeadlineExceeded))
+		})
+
+		It("causes TryLock() to return false", func() {
+			ok := mutex.TryLock()
+			Expect(ok).To(BeTrue())
+
+			ok = mutex.TryLock()
+			Expect(ok).To(BeFalse())
+		})
+
+		It("causes TryRLock() to return false", func() {
+			ok := mutex.TryLock()
+			Expect(ok).To(BeTrue())
+
+			ok = mutex.TryRLock()
+			Expect(ok).To(BeFalse())
 		})
 	})
 
@@ -64,6 +114,16 @@ var _ = Describe("type RWMutex", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
+		It("allows subsequent calls to TryLock()", func() {
+			err := mutex.Lock(ctx)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			mutex.Unlock()
+
+			ok := mutex.TryLock()
+			Expect(ok).To(BeTrue())
+		})
+
 		It("allows subsequent calls to RLock()", func() {
 			err := mutex.Lock(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -72,6 +132,16 @@ var _ = Describe("type RWMutex", func() {
 
 			err = mutex.RLock(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		It("allows subsequent calls to TryRLock()", func() {
+			err := mutex.Lock(ctx)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			mutex.Unlock()
+
+			ok := mutex.TryRLock()
+			Expect(ok).To(BeTrue())
 		})
 
 		It("unblocks one blocking call to Lock()", func() {
@@ -164,12 +234,28 @@ var _ = Describe("type RWMutex", func() {
 			Expect(err).To(Equal(context.DeadlineExceeded))
 		})
 
+		It("causes TryLock() to return false", func() {
+			err := mutex.RLock(ctx)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			ok := mutex.TryLock()
+			Expect(ok).To(BeFalse())
+		})
+
 		It("does not block calls to RLock()", func() {
 			err := mutex.RLock(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			err = mutex.RLock(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		It("does not cause TryRLock() to return false", func() {
+			err := mutex.RLock(ctx)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			ok := mutex.TryRLock()
+			Expect(ok).To(BeTrue())
 		})
 
 		It("returns an error if the context is canceled", func() {
@@ -238,6 +324,40 @@ var _ = Describe("type RWMutex", func() {
 		})
 	})
 
+	Describe("func TryRLock()", func() {
+		It("blocks calls to Lock()", func() {
+			ok := mutex.TryRLock()
+			Expect(ok).To(BeTrue())
+
+			err := mutex.Lock(ctx)
+			Expect(err).To(Equal(context.DeadlineExceeded))
+		})
+
+		It("causes TryLock() to return false", func() {
+			ok := mutex.TryRLock()
+			Expect(ok).To(BeTrue())
+
+			ok = mutex.TryLock()
+			Expect(ok).To(BeFalse())
+		})
+
+		It("does not block calls to RLock()", func() {
+			ok := mutex.TryRLock()
+			Expect(ok).To(BeTrue())
+
+			err := mutex.RLock(ctx)
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		It("does not cause TryRLock() to return false", func() {
+			ok := mutex.TryRLock()
+			Expect(ok).To(BeTrue())
+
+			ok = mutex.TryRLock()
+			Expect(ok).To(BeTrue())
+		})
+	})
+
 	Describe("func RUnlock()", func() {
 		It("allows subsequent calls to Lock()", func() {
 			err := mutex.RLock(ctx)
@@ -253,6 +373,20 @@ var _ = Describe("type RWMutex", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
+		It("allows subsequent calls to TryLock()", func() {
+			err := mutex.RLock(ctx)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			err = mutex.RLock(ctx)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			mutex.RUnlock()
+			mutex.RUnlock()
+
+			ok := mutex.TryLock()
+			Expect(ok).To(BeTrue())
+		})
+
 		It("does not allow subsequent calls to Lock() if other read-locks are still held", func() {
 			err := mutex.RLock(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -264,6 +398,19 @@ var _ = Describe("type RWMutex", func() {
 
 			err = mutex.Lock(ctx)
 			Expect(err).To(Equal(context.DeadlineExceeded))
+		})
+
+		It("does not allow subsequent calls to TryLock() if other read-locks are still held", func() {
+			err := mutex.RLock(ctx)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			err = mutex.RLock(ctx)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			mutex.RUnlock()
+
+			ok := mutex.TryLock()
+			Expect(ok).To(BeFalse())
 		})
 
 		It("unblocks one blocking call to Lock()", func() {

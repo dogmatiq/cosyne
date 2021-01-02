@@ -50,6 +50,21 @@ func (m *RWMutex) Lock(ctx context.Context) error {
 	}
 }
 
+// TryLock acquires an exclusive lock on the mutex if doing so would not block.
+//
+// It returns true if the mutex is locked.
+func (m *RWMutex) TryLock() bool {
+	m.m.Lock()
+	defer m.m.Unlock()
+
+	if m.unlocked() == nil {
+		m.readers--
+		return true
+	}
+
+	return false
+}
+
 // Unlock releases the mutex.
 //
 // It panics if the mutex is not currently locked with Lock().
@@ -132,6 +147,31 @@ func (m *RWMutex) RLock(ctx context.Context) error {
 			return nil
 		}
 	}
+}
+
+// TryRLock acquires a shared lock on the mutex if doing so would not block.
+//
+// It returns true if the mutex is locked.
+func (m *RWMutex) TryRLock() bool {
+	m.m.Lock()
+	defer m.m.Unlock()
+
+	// If there are already other readers, just add ourselves to the reader
+	// count immediately.
+	if m.readers > 0 {
+		m.readers++
+		return true
+	}
+
+	// Otherwise, we need to check if we we have exclusive access in order to
+	// "convert" the mutex to read-locked.
+	if m.unlocked() == nil {
+		m.readers++
+		m.signalRetry()
+		return true
+	}
+
+	return false
 }
 
 // RUnlock releases the mutex.
