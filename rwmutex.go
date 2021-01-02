@@ -10,7 +10,7 @@ type RWMutex struct {
 	m        sync.Mutex
 	readers  int // negative = write lock acquired
 	unlocked chan struct{}
-	retry    chan struct{}
+	retryC   chan struct{}
 }
 
 // Lock acquires an exclusive lock on the mutex.
@@ -93,13 +93,11 @@ func (m *RWMutex) RLock(ctx context.Context) error {
 			m.unlocked <- struct{}{}
 		}
 
-		// We also need to wake any other readers that come along.
-		if m.retry == nil {
-			m.retry = make(chan struct{})
-		}
-
 		unlocked := m.unlocked
-		retry := m.retry
+
+		// We also need to be notified when to retry if some other read-locker
+		// gets exclusive access before us.
+		retry := m.retry()
 
 		// Release the internal mutex before waiting for exclusive access.
 		m.m.Unlock()
@@ -118,24 +116,13 @@ func (m *RWMutex) RLock(ctx context.Context) error {
 			continue
 
 		case <-unlocked:
-			// We've obtained exclusive access, mark the mutex as "read-locked" by
-			// sending the reader count positive.
+			// We've obtained exclusive access, mark the mutex as "read-locked"
+			// by sending the reader count positive.
 			//
 			// We then tell any other blocking RLock() calls to retry.
 			m.m.Lock()
-
 			m.readers++
-
-			// If m.retry is already nil, it means that a competing goroutine
-			// has already closed it and called RUnlock() after we unlocked the
-			// internal mutex, but before we got to the select.
-			//
-			// See https://github.com/dogmatiq/infix/issues/72.
-			if m.retry != nil {
-				close(m.retry)
-				m.retry = nil
-			}
-
+			m.signalRetry()
 			m.m.Unlock()
 
 			return nil
@@ -161,4 +148,32 @@ func (m *RWMutex) RUnlock() {
 	}
 
 	m.m.Unlock()
+}
+
+// retry returns a channel that is closed when a goroutine that is waiting to
+// obtain a read-lock should retry.
+//
+// It assumes m.m is locked.
+func (m *RWMutex) retry() <-chan struct{} {
+	if m.retryC == nil {
+		m.retryC = make(chan struct{})
+	}
+
+	return m.retryC
+}
+
+// signalRetry wakes any goroutines that are awaiting to retry obtaining a
+// read-lock.
+//
+// It assumes m.m is locked.
+func (m *RWMutex) signalRetry() {
+	// If m.retry is already nil, it means that a competing goroutine has
+	// already closed it AND called RUnlock() and we happened to see the send to
+	// m.unlockedC before the closure of m.retryC.
+	//
+	// See https://github.com/dogmatiq/infix/issues/72.
+	if m.retryC != nil {
+		close(m.retryC)
+		m.retryC = nil
+	}
 }
