@@ -7,10 +7,10 @@ import (
 
 // RWMutex is a context-aware read/write mutex.
 type RWMutex struct {
-	m        sync.Mutex
-	readers  int // negative = write lock acquired
-	unlocked chan struct{}
-	retry    chan struct{}
+	m         sync.Mutex
+	readers   int // negative = write lock acquired
+	unlockedC chan struct{}
+	retryC    chan struct{}
 }
 
 // Lock acquires an exclusive lock on the mutex.
@@ -23,12 +23,12 @@ func (m *RWMutex) Lock(ctx context.Context) error {
 
 	m.m.Lock()
 
-	if m.unlocked == nil {
-		m.unlocked = make(chan struct{}, 1)
-		m.unlocked <- struct{}{}
+	unlocked := m.unlocked()
+	if unlocked == nil {
+		m.readers--
+		m.m.Unlock()
+		return nil
 	}
-
-	unlocked := m.unlocked
 
 	m.m.Unlock()
 
@@ -62,7 +62,7 @@ func (m *RWMutex) Unlock() {
 	}
 
 	m.readers++
-	m.unlocked <- struct{}{}
+	m.signalUnlocked()
 
 	m.m.Unlock()
 }
@@ -71,11 +71,11 @@ func (m *RWMutex) Unlock() {
 //
 // It blocks until the mutex is acquired, or ctx is canceled.
 func (m *RWMutex) RLock(ctx context.Context) error {
-	for {
-		if ctx.Err() != nil {
-			return ctx.Err()
-		}
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
 
+	for {
 		m.m.Lock()
 
 		// If there are already other readers, just add ourselves to the reader
@@ -88,18 +88,20 @@ func (m *RWMutex) RLock(ctx context.Context) error {
 
 		// Otherwise, we need to wait until we have exclusive access in order to
 		// "convert" the mutex to read-locked.
-		if m.unlocked == nil {
-			m.unlocked = make(chan struct{}, 1)
-			m.unlocked <- struct{}{}
+		//
+		// If we get it straight away we tell any other blocking RLock() calls
+		// to retry.
+		unlocked := m.unlocked()
+		if unlocked == nil {
+			m.readers++
+			m.signalRetry()
+			m.m.Unlock()
+			return nil
 		}
 
-		// We also need to wake any other readers that come along.
-		if m.retry == nil {
-			m.retry = make(chan struct{})
-		}
-
-		unlocked := m.unlocked
-		retry := m.retry
+		// We also need to be notified when to retry if some other read-locker
+		// gets exclusive access before us.
+		retry := m.retry()
 
 		// Release the internal mutex before waiting for exclusive access.
 		m.m.Unlock()
@@ -118,24 +120,13 @@ func (m *RWMutex) RLock(ctx context.Context) error {
 			continue
 
 		case <-unlocked:
-			// We've obtained exclusive access, mark the mutex as "read-locked" by
-			// sending the reader count positive.
+			// We've obtained exclusive access, mark the mutex as "read-locked"
+			// by sending the reader count positive.
 			//
 			// We then tell any other blocking RLock() calls to retry.
 			m.m.Lock()
-
 			m.readers++
-
-			// If m.retry is already nil, it means that a competing goroutine
-			// has already closed it and called RUnlock() after we unlocked the
-			// internal mutex, but before we got to the select.
-			//
-			// See https://github.com/dogmatiq/infix/issues/72.
-			if m.retry != nil {
-				close(m.retry)
-				m.retry = nil
-			}
-
+			m.signalRetry()
 			m.m.Unlock()
 
 			return nil
@@ -157,8 +148,70 @@ func (m *RWMutex) RUnlock() {
 	m.readers--
 
 	if m.readers == 0 {
-		m.unlocked <- struct{}{}
+		m.signalUnlocked()
 	}
 
 	m.m.Unlock()
+}
+
+// unlocked returns a channel used to signal to a single consumer that the mutex
+// has been unlocked.
+//
+// It assumes m.m is locked.
+//
+// It returns nil if the m itself is already unlocked.
+func (m *RWMutex) unlocked() <-chan struct{} {
+	if m.readers != 0 {
+		// The mutex is locked, we need to wait regardless of whether it's
+		// Lock()'d or RLock()'d.
+		return m.unlockedC
+	}
+
+	if m.unlockedC == nil {
+		// This is the first time the mutex has been locked. Create the buffered
+		// channel but don't write anything to it.
+		m.unlockedC = make(chan struct{}, 1)
+	} else {
+		// Otherwise, the channel already exists but the mutex is unlocked so
+		// reading will not block.
+		<-m.unlockedC
+	}
+
+	return nil
+}
+
+// signalUnlocked signals that the mutex has been unlocked, waking a single
+// waiting goroutine, if present.
+//
+// It assumes m.m is locked.
+func (m *RWMutex) signalUnlocked() {
+	m.unlockedC <- struct{}{}
+}
+
+// retry returns a channel that is closed when a goroutine that is waiting to
+// obtain a read-lock should retry.
+//
+// It assumes m.m is locked.
+func (m *RWMutex) retry() <-chan struct{} {
+	if m.retryC == nil {
+		m.retryC = make(chan struct{})
+	}
+
+	return m.retryC
+}
+
+// signalRetry wakes any goroutines that are awaiting to retry obtaining a
+// read-lock.
+//
+// It assumes m.m is locked.
+func (m *RWMutex) signalRetry() {
+	// If m.retry is already nil, it means that a competing goroutine has
+	// already closed it AND called RUnlock() and we happened to see the send to
+	// m.unlockedC before the closure of m.retryC.
+	//
+	// See https://github.com/dogmatiq/infix/issues/72.
+	if m.retryC != nil {
+		close(m.retryC)
+		m.retryC = nil
+	}
 }
