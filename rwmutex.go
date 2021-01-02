@@ -52,7 +52,8 @@ func (m *RWMutex) Lock(ctx context.Context) error {
 
 // TryLock acquires an exclusive lock on the mutex if doing so would not block.
 //
-// It returns true if the mutex is locked.
+// It returns true if the mutex was locked successfully, or false if it was
+// already locked.
 func (m *RWMutex) TryLock() bool {
 	m.m.Lock()
 	defer m.m.Unlock()
@@ -151,7 +152,8 @@ func (m *RWMutex) RLock(ctx context.Context) error {
 
 // TryRLock acquires a shared lock on the mutex if doing so would not block.
 //
-// It returns true if the mutex is locked.
+// It returns true if the mutex was locked successfully, or false if it was
+// already locked with Lock().
 func (m *RWMutex) TryRLock() bool {
 	m.m.Lock()
 	defer m.m.Unlock()
