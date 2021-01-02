@@ -71,11 +71,11 @@ func (m *RWMutex) Unlock() {
 //
 // It blocks until the mutex is acquired, or ctx is canceled.
 func (m *RWMutex) RLock(ctx context.Context) error {
-	for {
-		if ctx.Err() != nil {
-			return ctx.Err()
-		}
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
 
+	for {
 		m.m.Lock()
 
 		// If there are already other readers, just add ourselves to the reader
