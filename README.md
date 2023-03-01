@@ -1,13 +1,16 @@
-# Cosyne
+<div align="center">
 
-[![Build Status](https://github.com/dogmatiq/cosyne/workflows/CI/badge.svg)](https://github.com/dogmatiq/cosyne/actions?workflow=CI)
-[![Code Coverage](https://img.shields.io/codecov/c/github/dogmatiq/cosyne/main.svg)](https://codecov.io/github/dogmatiq/cosyne)
-[![Latest Version](https://img.shields.io/github/tag/dogmatiq/cosyne.svg?label=semver)](https://semver.org)
-[![Documentation](https://img.shields.io/badge/go.dev-reference-007d9c)](https://pkg.go.dev/github.com/dogmatiq/cosyne)
-[![Go Report Card](https://goreportcard.com/badge/github.com/dogmatiq/cosyne)](https://goreportcard.com/report/github.com/dogmatiq/cosyne)
+# Cosyne
 
 Cosyne provides [context](https://pkg.go.dev/context/?tab=doc)-aware
 synchronization primitives for Go.
+
+[![Documentation](https://img.shields.io/badge/go.dev-documentation-007d9c?&style=for-the-badge)](https://pkg.go.dev/github.com/dogmatiq/cosyne)
+[![Latest Version](https://img.shields.io/github/tag/dogmatiq/cosyne.svg?&style=for-the-badge&label=semver)](https://github.com/dogmatiq/cosyne/releases)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/dogmatiq/cosyne/ci.yml?style=for-the-badge&branch=main)](https://github.com/dogmatiq/cosyne/actions/workflows/ci.yml)
+[![Code Coverage](https://img.shields.io/codecov/c/github/dogmatiq/cosyne/main.svg?style=for-the-badge)](https://codecov.io/github/dogmatiq/cosyne)
+
+</div>
 
 ## Mutexes
 
