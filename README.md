@@ -12,6 +12,11 @@ synchronization primitives for Go.
 
 </div>
 
+> **This project is deprecated.**
+>
+> This repository will be archived once it is no longer used by other Dogmatiq
+> projects.
+
 ## Mutexes
 
 Cosyne includes variants of `sync.Mutex` and `RWMutex` that accept a
