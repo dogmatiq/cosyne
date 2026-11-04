@@ -17,8 +17,11 @@ superseded by `sync.Mutex.TryLock()` and `golang.org/x/sync/semaphore`.
 
 ### Added
 
-- Add `Signal`, `Latch`, `Future` and `Observable`, which can be waited for with
-  a `context.Context`, or used in a `select` statement.
+- Add `Signal`, which notifies a waiting goroutine. Repeated notifications
+  coalesce.
+- Add `Latch`, a one-way flag that unblocks all waiters when it is set.
+- Add `Future`, a value that is stored at most once and may not be available yet.
+- Add `Observable`, an atomic value that can be observed for changes.
 - Add `SignalR`, `LatchR`, `FutureR` and `ObservableR`, the read-only views of
   those types, and `SignalW`, `LatchW`, `FutureW` and `ObservableW`, the
   write-only views.
