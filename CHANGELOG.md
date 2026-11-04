@@ -17,24 +17,32 @@ superseded by `sync.Mutex.TryLock()` and `golang.org/x/sync/semaphore`.
 
 ### Added
 
-- Add `Signal`, which notifies a waiting goroutine. Repeated notifications
-  coalesce.
+- Add `Signal`, which wakes a single waiting goroutine. A notification sent while
+  nothing is waiting stays pending until the next wait, and repeated
+  notifications coalesce into one.
+- Add `SignalR` and `SignalW`, the read-only and write-only views of `Signal`.
 - Add `Latch`, a one-way flag that unblocks all waiters when it is set.
-- Add `Future`, a value that is stored at most once and may not be available yet.
+- Add `LatchR` and `LatchW`, the read-only and write-only views of `Latch`.
+- Add `Future`, a value that becomes available later, like a promise that cannot
+  fail. It is stored at most once.
+- Add `FutureR` and `FutureW`, the read-only and write-only views of `Future`.
 - Add `Observable`, an atomic value that can be observed for changes.
-- Add `SignalR`, `LatchR`, `FutureR` and `ObservableR`, the read-only views of
-  those types, and `SignalW`, `LatchW`, `FutureW` and `ObservableW`, the
-  write-only views.
+- Add `ObservableR` and `ObservableW`, the read-only and write-only views of
+  `Observable`.
 
 ### Changed
 
-- **[BC]** `Once.Do()` now returns the context's error, without calling the
-  function, if the context is already done and the function has not succeeded.
 - **[BC]** The minimum supported Go version is now v1.27.
 
 ### Removed
 
 - **[BC]** Remove `Mutex` and `RWMutex`.
+
+### Fixed
+
+- Fix `Once.Do()` choosing at random between calling the function and returning
+  the context's error when the context is already done. It now returns the
+  error without calling the function.
 
 ## [0.2.0] - 2021-01-02
 
