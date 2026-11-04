@@ -12,16 +12,16 @@ synchronization primitives for Go.
 
 </div>
 
-> **This project is deprecated.**
->
-> This repository will be archived once it is no longer used by other Dogmatiq
-> projects.
+Each primitive can be waited for with a `context.Context`, or used in a `select`
+statement.
 
-## Mutexes
+| Type            | Purpose                                                                    |
+| --------------- | -------------------------------------------------------------------------- |
+| `Signal`        | Notifies a waiting goroutine; repeated notifications coalesce.             |
+| `Latch`         | A one-way flag that unblocks all waiters when set.                         |
+| `Future[T]`     | A value that is stored at most once, and may not be available yet.         |
+| `Observable[T]` | An atomic value that readers can observe for changes.                      |
+| `Once`          | A variant of `sync.Once` that can fail, and can stop waiting for its turn. |
 
-Cosyne includes variants of `sync.Mutex` and `RWMutex` that accept a
-`context.Context` parameter, which allows support for cancellation and deadlines
-while acquiring locks.
-
-The mutex implementations also support "try lock" semantics, allowing the user
-to acquire the lock only if doing so would not block.
+`Signal`, `Latch`, `Future` and `Observable` also have read-only and write-only
+views, such as `LatchR` and `LatchW`, for handing out just one side of a value.

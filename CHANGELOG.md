@@ -8,6 +8,41 @@ The format is based on [Keep a Changelog], and this project adheres to
 <!-- references -->
 [Keep a Changelog]: https://keepachangelog.com/en/1.0.0/
 [Semantic Versioning]: https://semver.org/spec/v2.0.0.html
+[BC]: https://github.com/dogmatiq/.github/blob/main/VERSIONING.md#changelogs
+
+## [Unreleased]
+
+This release replaces the package's contents. Its previous mutexes were
+superseded by `sync.Mutex.TryLock()` and `golang.org/x/sync/semaphore`.
+
+### Added
+
+- Add `Signal`, which wakes a single waiting goroutine. A notification sent while
+  nothing is waiting stays pending until the next wait, and repeated
+  notifications coalesce into one.
+- Add `SignalR` and `SignalW`, the read-only and write-only views of `Signal`.
+- Add `Latch`, a one-way flag that unblocks all waiters when it is set.
+- Add `LatchR` and `LatchW`, the read-only and write-only views of `Latch`.
+- Add `Future`, a value that becomes available later, like a promise that cannot
+  fail. It is stored at most once.
+- Add `FutureR` and `FutureW`, the read-only and write-only views of `Future`.
+- Add `Observable`, an atomic value that can be observed for changes.
+- Add `ObservableR` and `ObservableW`, the read-only and write-only views of
+  `Observable`.
+
+### Changed
+
+- **[BC]** The minimum supported Go version is now v1.27.
+
+### Removed
+
+- **[BC]** Remove `Mutex` and `RWMutex`.
+
+### Fixed
+
+- Fix `Once.Do()` choosing at random between calling the function and returning
+  the context's error when the context is already done. It now returns the
+  error without calling the function.
 
 ## [0.2.0] - 2021-01-02
 
