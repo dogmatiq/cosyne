@@ -1,11 +1,15 @@
 package cosyne
 
-import "sync/atomic"
+import (
+	"sync"
+	"sync/atomic"
+)
 
 // Observable is an atomic value that can be observed for changes.
 //
 // Its initial value is the zero value of T.
 type Observable[T any] struct {
+	once  sync.Once
 	state atomic.Pointer[observableState[T]]
 }
 
@@ -33,35 +37,31 @@ var (
 // Load returns the current value, and a channel that is closed when that value
 // is replaced by a subsequent call to [Observable.Store].
 func (o *Observable[T]) Load() (T, <-chan struct{}) {
-	if s := o.state.Load(); s != nil {
-		return s.value, s.replaced
-	}
+	o.init()
 
-	s := &observableState[T]{
-		replaced: make(chan struct{}),
-	}
-
-	if o.state.CompareAndSwap(nil, s) {
-		return s.value, s.replaced
-	}
-
-	s = o.state.Load()
+	s := o.state.Load()
 	return s.value, s.replaced
 }
 
 // Store replaces the current value.
 func (o *Observable[T]) Store(v T) {
+	o.init()
+
 	prev := o.state.Swap(&observableState[T]{
 		value:    v,
 		replaced: make(chan struct{}),
 	})
 
-	if prev != nil {
-		close(prev.replaced)
-	}
+	close(prev.replaced)
 }
 
-func (*Observable[T]) sealed() {}
+func (o *Observable[T]) init() {
+	o.once.Do(func() {
+		o.state.Store(&observableState[T]{
+			replaced: make(chan struct{}),
+		})
+	})
+}
 
 type observableState[T any] struct {
 	value    T

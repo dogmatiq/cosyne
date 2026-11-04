@@ -2,14 +2,16 @@ package cosyne
 
 import (
 	"context"
+	"sync"
 	"sync/atomic"
 )
 
 // Future holds a value that is stored at most once, and may not be available
 // yet.
 type Future[T any] struct {
-	ptr atomic.Pointer[T]
-	ch  atomic.Pointer[chan struct{}]
+	ptr  atomic.Pointer[T]
+	once sync.Once
+	ch   chan struct{}
 }
 
 // FutureR is the read-only view of a [Future]. It cannot store a value.
@@ -40,7 +42,7 @@ var (
 // set, in which case the existing value is unchanged.
 func (f *Future[T]) Store(v T) bool {
 	if f.ptr.CompareAndSwap(nil, &v) {
-		close(f.stored())
+		close(f.init())
 		return true
 	}
 
@@ -61,7 +63,7 @@ func (f *Future[T]) Load() (T, bool) {
 
 // Wait blocks until the value is available, then returns it.
 func (f *Future[T]) Wait() T {
-	<-f.stored()
+	<-f.init()
 	return *f.ptr.Load()
 }
 
@@ -77,27 +79,20 @@ func (f *Future[T]) WaitContext(ctx context.Context) (T, error) {
 	case <-ctx.Done():
 		var zero T
 		return zero, ctx.Err()
-	case <-f.stored():
+	case <-f.init():
 		return *f.ptr.Load(), nil
 	}
 }
 
 // Chan returns a channel that is closed when the value becomes available.
 func (f *Future[T]) Chan() <-chan struct{} {
-	return f.stored()
+	return f.init()
 }
 
-func (*Future[T]) sealed() {}
+func (f *Future[T]) init() chan struct{} {
+	f.once.Do(func() {
+		f.ch = make(chan struct{})
+	})
 
-func (f *Future[T]) stored() chan struct{} {
-	if ch := f.ch.Load(); ch != nil {
-		return *ch
-	}
-
-	ch := make(chan struct{})
-	if f.ch.CompareAndSwap(nil, &ch) {
-		return ch
-	}
-
-	return *f.ch.Load()
+	return f.ch
 }

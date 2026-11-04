@@ -85,8 +85,6 @@ func (s *Signal) Chan() <-chan struct{} {
 	return s.init()
 }
 
-func (*Signal) sealed() {}
-
 func (s *Signal) init() chan struct{} {
 	s.once.Do(func() {
 		s.ch = make(chan struct{}, 1)
