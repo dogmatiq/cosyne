@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog], and this project adheres to
 [Semantic Versioning]: https://semver.org/spec/v2.0.0.html
 [BC]: https://github.com/dogmatiq/.github/blob/main/VERSIONING.md#changelogs
 
-## [Unreleased]
+## [0.3.0] - 2026-11-05
 
 This release replaces the package's contents. Its previous mutexes were
 superseded by `sync.Mutex.TryLock()` and `golang.org/x/sync/semaphore`.
@@ -59,6 +59,7 @@ superseded by `sync.Mutex.TryLock()` and `golang.org/x/sync/semaphore`.
 [Unreleased]: https://github.com/dogmatiq/cosyne
 [0.1.0]: https://github.com/dogmatiq/dogma/releases/tag/v0.1.0
 [0.2.0]: https://github.com/dogmatiq/dogma/releases/tag/v0.2.0
+[0.3.0]: https://github.com/dogmatiq/cosyne/releases/tag/v0.3.0
 
 <!-- version template
 ## [0.0.1] - YYYY-MM-DD
