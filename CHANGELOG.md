@@ -8,6 +8,30 @@ The format is based on [Keep a Changelog], and this project adheres to
 <!-- references -->
 [Keep a Changelog]: https://keepachangelog.com/en/1.0.0/
 [Semantic Versioning]: https://semver.org/spec/v2.0.0.html
+[BC]: https://github.com/dogmatiq/.github/blob/main/VERSIONING.md#changelogs
+
+## [Unreleased]
+
+This release replaces the package's contents. Its previous mutexes were
+superseded by `sync.Mutex.TryLock()` and `golang.org/x/sync/semaphore`.
+
+### Added
+
+- Add `Signal`, `Latch`, `Future` and `Observable`, which can be waited for with
+  a `context.Context`, or used in a `select` statement.
+- Add `SignalR`, `LatchR`, `FutureR` and `ObservableR`, the read-only views of
+  those types, and `SignalW`, `LatchW`, `FutureW` and `ObservableW`, the
+  write-only views.
+
+### Changed
+
+- **[BC]** `Once.Do()` now returns the context's error, without calling the
+  function, if the context is already done and the function has not succeeded.
+- **[BC]** The minimum supported Go version is now v1.27.
+
+### Removed
+
+- **[BC]** Remove `Mutex` and `RWMutex`.
 
 ## [0.2.0] - 2021-01-02
 
