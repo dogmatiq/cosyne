@@ -10,6 +10,14 @@ The format is based on [Keep a Changelog], and this project adheres to
 [Semantic Versioning]: https://semver.org/spec/v2.0.0.html
 [BC]: https://github.com/dogmatiq/.github/blob/main/VERSIONING.md#changelogs
 
+## [Unreleased]
+
+### Added
+
+- Add `Mutex`, a variant of `sync.Mutex` whose `Lock()` method stops waiting
+  when its context is done. Unlike `golang.org/x/sync/semaphore`, it's ready to
+  use as its zero value.
+
 ## [0.3.0] - 2026-11-05
 
 This release replaces the package's contents. Its previous mutexes were
