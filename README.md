@@ -12,8 +12,8 @@ synchronization primitives for Go.
 
 </div>
 
-Each primitive can be waited for with a `context.Context`, or used in a `select`
-statement.
+Each primitive can be waited for with a `context.Context`, and `Signal`, `Latch`
+and `Future` can also be used in a `select` statement.
 
 | Type            | Purpose                                                                    |
 | --------------- | -------------------------------------------------------------------------- |
@@ -22,6 +22,7 @@ statement.
 | `Future[T]`     | A value that is stored at most once, and may not be available yet.         |
 | `Observable[T]` | An atomic value that readers can observe for changes.                      |
 | `Once`          | A variant of `sync.Once` that can fail, and can stop waiting for its turn. |
+| `Mutex`         | A variant of `sync.Mutex` that can stop waiting for its turn.              |
 
 `Signal`, `Latch`, `Future` and `Observable` also have read-only and write-only
 views, such as `LatchR` and `LatchW`, for handing out just one side of a value.
